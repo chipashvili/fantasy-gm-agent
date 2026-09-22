@@ -6,6 +6,7 @@ import time
 import asyncio
 import schedule
 import threading
+from datetime import datetime, timedelta
 from bot_handler import BotHandler
 from trade_analyzer import TradeAnalyzer
 from matchup_optimizer import MatchupOptimizer
@@ -143,7 +144,35 @@ def trade_scan_job():
                 
         asyncio.run(bot.send_approval_request(msg, action_id, on_approve))
 
+def schedule_dynamic_game_checks():
+    print("Updating dynamic game-time injury checks...")
+    schedule.clear('game_check')
+    try:
+        optimizer.refresh()
+        my_team = next((t for t in optimizer.league.teams if t.team_name == optimizer.my_team_name), optimizer.league.teams[0])
+        starters = [p for p in my_team.roster if p.lineupSlot not in ['BE', 'IR']]
+        current_week = optimizer.league.current_week
+        
+        now = datetime.now()
+        for p in starters:
+            if current_week in p.schedule:
+                game_date = p.schedule[current_week]['date']
+                # Schedule exactly 30 mins before game starts
+                check_time = game_date - timedelta(minutes=30)
+                
+                # Check if check_time is today and in the future
+                if check_time.date() == now.date() and check_time > now:
+                    time_str = check_time.strftime("%H:%M")
+                    print(f"Scheduled pre-game injury check for {p.name} at {time_str}")
+                    schedule.every().day.at(time_str).do(injury_cascade_job).tag('game_check')
+                    
+    except Exception as e:
+        print(f"Error scheduling dynamic checks: {e}")
+
 def run_scheduler():
+    # Update dynamic pre-game checks every day at 01:00 AM
+    schedule.every().day.at("01:00").do(schedule_dynamic_game_checks)
+    
     # Matchup & Injury optimizations run 4x a day
     schedule.every().day.at("10:00").do(injury_cascade_job)
     schedule.every().day.at("14:00").do(injury_cascade_job)
@@ -157,6 +186,7 @@ def run_scheduler():
     schedule.every().tuesday.at("10:00").do(trade_scan_job)
     
     # Run once immediately on startup for testing
+    schedule_dynamic_game_checks()
     injury_cascade_job()
     
     while True:
