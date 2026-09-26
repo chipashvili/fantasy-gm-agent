@@ -14,12 +14,12 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 load_dotenv()
 
-LEAGUE_ID = int(os.environ.get("ESPN_LEAGUE_ID", 0))
-YEAR = int(os.environ.get("ESPN_YEAR", 2026))
-ESPN_S2 = os.environ.get("ESPN_S2", "")
-SWID = os.environ.get("SWID", "")
+LEAGUE_ID = 384224
+YEAR = 2026
+ESPN_S2 = os.environ.get("ESPN_S2")
+SWID = os.environ.get("SWID")
 
-MY_TEAM_NAME = os.environ.get("ESPN_TEAM_NAME", "Team Name")
+MY_TEAM_NAME = "Ivy league douche"
 POLL_INTERVAL_SEC = 4
 TOTAL_LEAGUE_TEAMS = 12
 HTML_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "draft_dashboard.html")

@@ -1,5 +1,8 @@
 import os
+import sys
 from dotenv import load_dotenv
+# Load .env from project root regardless of CWD
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 load_dotenv()
 
 import time
@@ -21,7 +24,7 @@ scout = WaiverScout()
 
 # Requires the espn cookies from the user environment if they want execution
 executor = ESPNExecutor(
-    league_id=int(os.environ.get("ESPN_LEAGUE_ID", 0)), 
+    league_id=int(os.environ.get("ESPN_LEAGUE_ID", 384224)), 
     year=int(os.environ.get("ESPN_YEAR", 2026)), 
     espn_s2=os.environ.get("ESPN_S2", ""), 
     swid=os.environ.get("SWID", "")
@@ -69,7 +72,7 @@ def injury_cascade_job():
     injury_found = False
     for w in warnings:
         asyncio.run(bot.send_alert(w))
-        if "OUT" in w or "IR" in w or "SUSP" in w:
+        if "OUT" in w or "IR" in w or "SUSP" in w or "DOUBTFUL" in w:
             injury_found = True
             
     if injury_found:
@@ -86,8 +89,22 @@ def injury_cascade_job():
             if approved:
                 print(f"[ACTION] Swapping {s1.name} out for {s2.name}")
                 
-                # Map ESPN string slot to ID (WR=4, RB=2, TE=6, FLEX=23, QB=0, D/ST=16, K=17)
-                slot_map = {"QB": 0, "RB": 2, "WR": 4, "TE": 6, "FLEX": 23, "D/ST": 16, "K": 17}
+                # Map ESPN string slot to ID (WR=4, RB=2, TE=6, FLEX=23, QB=0, D/ST=16, K=17, BE=20, IR=21)
+                slot_map = {
+                    "QB": 0,
+                    "RB": 2,
+                    "WR": 4,
+                    "TE": 6,
+                    "D/ST": 16,
+                    "K": 17,
+                    "BE": 20,
+                    "IR": 21,
+                    "RB/WR/TE": 23,
+                    "RB/WR": 23,
+                    "WR/TE": 23,
+                    "FLEX": 23,
+                    "OP": 7,
+                }
                 from_slot = slot_map.get(s1.lineupSlot, 2)
                 
                 success, response_msg = executor.swap_lineup(
@@ -152,19 +169,25 @@ def schedule_dynamic_game_checks():
         my_team = next((t for t in optimizer.league.teams if t.team_name == optimizer.my_team_name), optimizer.league.teams[0])
         starters = [p for p in my_team.roster if p.lineupSlot not in ['BE', 'IR']]
         current_week = optimizer.league.current_week
+        week_key = str(current_week)
         
         now = datetime.now()
+        scheduled_times = set()
         for p in starters:
-            if current_week in p.schedule:
-                game_date = p.schedule[current_week]['date']
+            if week_key in p.schedule:
+                game_date = p.schedule[week_key]['date']
                 # Schedule exactly 30 mins before game starts
                 check_time = game_date - timedelta(minutes=30)
                 
                 # Check if check_time is today and in the future
                 if check_time.date() == now.date() and check_time > now:
                     time_str = check_time.strftime("%H:%M")
-                    print(f"Scheduled pre-game injury check for {p.name} at {time_str}")
-                    schedule.every().day.at(time_str).do(injury_cascade_job).tag('game_check')
+                    if time_str not in scheduled_times:
+                        scheduled_times.add(time_str)
+                        print(f"Scheduled pre-game injury check for {p.name} at {time_str}")
+                        schedule.every().day.at(time_str).do(injury_cascade_job).tag('game_check')
+                    else:
+                        print(f"Pre-game injury check for {p.name} already covered at {time_str}")
                     
     except Exception as e:
         print(f"Error scheduling dynamic checks: {e}")
@@ -194,7 +217,22 @@ def run_scheduler():
         time.sleep(1)
 
 if __name__ == "__main__":
+    if os.environ.get("AGENT_RESTARTED") == "1":
+        del os.environ["AGENT_RESTARTED"]
+        try:
+            asyncio.run(bot.send_alert("⚡ Fantasy GM Agent successfully restarted and back online!"))
+        except Exception as e:
+            print(f"Error sending restart confirmation: {e}")
+
     print("Starting Advanced Fantasy GM Agent Daemon...")
     scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
     scheduler_thread.start()
     bot.run_polling()
+
+    if getattr(bot, 'should_restart', False):
+        print("Restarting GM Agent process...")
+        time.sleep(1)
+        os.environ["AGENT_RESTARTED"] = "1"
+        script_path = os.path.abspath(sys.argv[0])
+        args = [sys.executable, script_path] + sys.argv[1:]
+        os.execv(sys.executable, args)

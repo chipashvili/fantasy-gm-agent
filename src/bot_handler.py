@@ -18,18 +18,29 @@ class BotHandler:
             self.app = None
             return
         
+        self.should_restart = False
         self.app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
         
         # Handlers
         self.app.add_handler(CommandHandler("start", self.start))
         self.app.add_handler(CommandHandler("status", self.status))
         self.app.add_handler(CommandHandler("update_cookie", self.update_cookie))
+        self.app.add_handler(CommandHandler("restart", self.restart))
         self.app.add_handler(CallbackQueryHandler(self.button_callback))
         
         self.approval_callbacks = {}  # action_id -> callback_func
 
+    async def restart(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if str(update.effective_chat.id) != str(TELEGRAM_CHAT_ID):
+            await update.message.reply_text("Unauthorized user.")
+            return
+
+        await update.message.reply_text("🔄 Restarting Fantasy GM Agent... Be back in a moment!")
+        self.should_restart = True
+        context.application.stop_running()
+
     async def update_cookie(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if str(update.effective_chat.id) != TELEGRAM_CHAT_ID:
+        if str(update.effective_chat.id) != str(TELEGRAM_CHAT_ID):
             return
             
         if not context.args:
@@ -38,16 +49,33 @@ class BotHandler:
             
         new_cookie = context.args[0]
         os.environ["ESPN_S2"] = new_cookie
-        await update.message.reply_text("✅ ESPN_S2 Cookie updated successfully in memory! The agent will use this for the next scheduled job.")
+
+        # Persist to .env file so it survives restarts
+        env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+        if os.path.exists(env_file):
+            try:
+                import re
+                with open(env_file, 'r') as f:
+                    content = f.read()
+                if "ESPN_S2=" in content:
+                    content = re.sub(r'ESPN_S2=.*', f'ESPN_S2="{new_cookie}"', content)
+                else:
+                    content += f'\nESPN_S2="{new_cookie}"\n'
+                with open(env_file, 'w') as f:
+                    f.write(content)
+            except Exception as e:
+                print(f"Error persisting cookie to .env: {e}")
+
+        await update.message.reply_text("✅ ESPN_S2 Cookie updated successfully in memory and .env! The agent will use this for future jobs.")
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if str(update.effective_chat.id) != TELEGRAM_CHAT_ID:
+        if str(update.effective_chat.id) != str(TELEGRAM_CHAT_ID):
             await update.message.reply_text("Unauthorized user.")
             return
-        await update.message.reply_text("🏈 Fantasy GM Agent is online and monitoring your roster!")
+        await update.message.reply_text("🏈 Fantasy GM Agent is online and monitoring your roster!\n\nAvailable commands:\n/status - Check health\n/update_cookie <cookie> - Update ESPN session\n/restart - Restart the agent")
 
     async def status(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if str(update.effective_chat.id) != TELEGRAM_CHAT_ID:
+        if str(update.effective_chat.id) != str(TELEGRAM_CHAT_ID):
             return
         await update.message.reply_text("All systems nominal. Scanning waiver wire and lineup health...")
 

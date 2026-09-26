@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="4">
+    <title>Draft Copilot | Ivy league douche</title>
+    <script>
+        // Apply theme immediately to prevent flash
+        const savedTheme = localStorage.getItem('copilotTheme') || 'theme-cyberpunk';
+        document.documentElement.className = savedTheme;
+        
+        function setTheme(theme) {
+            localStorage.setItem('copilotTheme', theme);
+            document.documentElement.className = theme;
+            document.getElementById('theme-select').value = theme;
+        }
+    </script>
+    <style>
+        :root, html.theme-cyberpunk {
+            --bg-base: #0a0e17;
+            --bg-card: #121826;
+            --bg-card-alt: #182234;
+            --border-color: #1e293b;
+            --border-style: solid;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-blue: #38bdf8;
+            --accent-purple: #818cf8;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --radius: 12px;
+            --shadow: none;
+            --card-border-width: 1px;
+            --item-radius: 8px;
+            --header-bg: transparent;
+        }
+        
+        html.theme-professional {
+            --bg-base: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-card-alt: #f8fafc;
+            --border-color: #cbd5e1;
+            --border-style: solid;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --accent-green: #059669;
+            --accent-amber: #d97706;
+            --accent-blue: #2563eb;
+            --accent-purple: #6d28d9;
+            --font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            --radius: 6px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --card-border-width: 1px;
+            --item-radius: 4px;
+            --header-bg: transparent;
+        }
+        
+        html.theme-y2k {
+            --bg-base: #008080;
+            --bg-card: #c0c0c0;
+            --bg-card-alt: #ffffff;
+            --border-color: #dfdfdf;
+            --border-style: outset;
+            --text-main: #000000;
+            --text-muted: #333333;
+            --accent-green: #000080;
+            --accent-amber: #800000;
+            --accent-blue: #000080;
+            --accent-purple: #800080;
+            --font-family: "Tahoma", "MS Sans Serif", sans-serif;
+            --radius: 0px;
+            --shadow: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+            --card-border-width: 2px;
+            --item-radius: 0px;
+            --header-bg: #000080;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-family); }
+        body { background-color: var(--bg-base); color: var(--text-main); padding: 24px; transition: background-color 0.2s, color 0.2s; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: var(--card-border-width) solid var(--border-color); padding-bottom: 18px; margin-bottom: 24px; }
+        html.theme-y2k .header { background: var(--bg-card); padding: 10px; border: var(--card-border-width) outset #fff; box-shadow: var(--shadow); }
+        html.theme-y2k .header-title h1 { font-size: 20px; }
+        html.theme-y2k .header-title p { color: #000; font-weight: bold; }
+        
+        .header-title h1 { font-size: 26px; font-weight: 800; }
+        .header-title p { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+        .header-meta { display: flex; align-items: center; gap: 14px; }
+        
+        .theme-selector { padding: 4px 8px; font-size: 12px; border-radius: 4px; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); }
+        
+        .badge { padding: 6px 14px; border-radius: 9999px; font-weight: 700; font-size: 13px; text-transform: uppercase; }
+        html.theme-y2k .badge { border-radius: 0; border: 2px outset #fff; padding: 2px 6px; font-size: 11px; }
+        
+        .badge-clock { background: #dc2626; color: #fff; box-shadow: 0 0 16px rgba(220,38,38,0.5); }
+        html.theme-y2k .badge-clock { background: #ff0000; box-shadow: none; color: #fff; }
+        
+        .badge-deck { background: #d97706; color: #fff; }
+        .badge-idle { background: var(--bg-card-alt); color: var(--text-muted); border: 1px solid var(--border-color); }
+        .animate-pulse { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+        
+        .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+        @media (max-width: 960px) { .main-grid { grid-template-columns: 1fr; } }
+        
+        .hero-banner { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        .target-card { background: var(--bg-card); border: var(--card-border-width) var(--border-style) var(--border-color); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: transform 0.1s; box-shadow: var(--shadow); }
+        html.theme-y2k .target-card { border-color: #fff; }
+        .target-card:hover { transform: translateY(-2px); }
+        html.theme-y2k .target-card:active { box-shadow: inset 1px 1px #0a0a0a, inset -1px -1px #ffffff; padding: 21px 19px 19px 21px; }
+        
+        .target-card.primary { border-color: var(--accent-green); }
+        .target-card.backup { border-color: var(--accent-blue); }
+        html.theme-cyberpunk .target-card.primary { box-shadow: 0 4px 20px rgba(16,185,129,0.12); }
+        
+        .target-label { font-size: 11px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px; display: block; }
+        .primary .target-label { color: var(--accent-green); }
+        .backup .target-label { color: var(--accent-blue); }
+        html.theme-y2k .target-label { color: #000; font-size: 12px; }
+        
+        .target-name { font-size: 22px; font-weight: 800; }
+        html.theme-y2k .target-name { color: #000080; }
+        
+        .card { background: var(--bg-card); border: var(--card-border-width) var(--border-style) var(--border-color); border-radius: var(--radius); margin-bottom: 20px; box-shadow: var(--shadow); }
+        html.theme-y2k .card { border-color: #fff; }
+        
+        .card-header { font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--text-main); margin-bottom: 0; padding: 14px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; background: var(--header-bg); border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); }
+        html.theme-cyberpunk .card-header { color: var(--text-muted); background: transparent; }
+        html.theme-y2k .card-header { color: #fff; font-size: 12px; font-weight: bold; padding: 4px 8px; border-bottom: none; }
+        
+        .card-body { padding: 20px; }
+        html.theme-y2k .card-body { padding: 8px; }
+        
+        .intel-box { display: flex; flex-direction: column; gap: 14px; }
+        .intel-item { background: var(--bg-card-alt); border-radius: var(--item-radius); padding: 14px 16px; border-left: 4px solid var(--text-muted); border-top: 1px solid var(--border-color); border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); }
+        html.theme-y2k .intel-item { border: 2px inset #fff; padding: 8px; }
+        
+        .intel-item.cliff { border-left-color: var(--accent-amber); }
+        .intel-item.threat { border-left-color: var(--accent-purple); }
+        .intel-item.rationale { border-left-color: var(--accent-green); }
+        .intel-item.news { border-left-color: var(--accent-blue); }
+        
+        .intel-title { font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+        html.theme-y2k .intel-title { color: #000; font-size: 12px; }
+        .intel-body { font-size: 14px; line-height: 1.45; }
+        
+        .search-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .search-tag { background: var(--bg-base); border: 1px solid var(--border-color); padding: 3px 8px; border-radius: var(--radius); font-size: 11px; color: var(--accent-blue); }
+        html.theme-y2k .search-tag { border-radius: 0; border: 1px solid #808080; color: #000; }
+
+        .radar-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+        .radar-stat-box { background: var(--bg-base); border-radius: var(--item-radius); padding: 10px; text-align: center; border: 1px solid var(--border-color); }
+        html.theme-y2k .radar-stat-box { border: 2px inset #fff; background: #fff; }
+        .radar-stat-val { font-size: 20px; font-weight: 800; color: var(--accent-blue); }
+        html.theme-y2k .radar-stat-val { color: #000; }
+        .radar-stat-lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
+
+        .pos-tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 800; margin-right: 8px; color: #fff; min-width: 35px; text-align: center; }
+        html.theme-y2k .pos-tag { border-radius: 0; }
+        html.theme-professional .pos-tag { border-radius: 2px; font-weight: 700; }
+        
+        .pos-qb { background: #dc2626; }
+        .pos-rb { background: #2563eb; }
+        .pos-wr { background: #059669; }
+        .pos-te { background: #d97706; }
+        .pos-d/st, .pos-dst { background: #475569; }
+        .pos-k { background: #64748b; }
+
+        .roster-grid { display: flex; flex-direction: column; gap: 8px; }
+        .roster-item { display: flex; align-items: center; background: var(--bg-card-alt); padding: 8px 12px; border-radius: var(--item-radius); font-size: 13px; font-weight: 600; border: 1px solid var(--border-color); }
+        html.theme-y2k .roster-item { border: 1px solid #808080; }
+        
+        .board-list { display: flex; flex-direction: column; gap: 6px; max-height: 480px; overflow-y: auto; }
+        .board-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card-alt); padding: 8px 12px; border-radius: var(--item-radius); font-size: 13px; border: 1px solid var(--border-color); }
+        html.theme-y2k .board-item { border: 1px solid #808080; }
+        
+        .board-item-left { display: flex; align-items: center; }
+        .proj-pts { font-size: 12px; font-weight: 700; color: var(--accent-green); }
+        .proj-pts small { font-size: 9px; color: var(--text-muted); }
+        .empty-state { color: var(--text-muted); font-size: 13px; padding: 12px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-title">
+            <h1>🏈 Oh Please, AOC, Spit on Me — Draft Copilot</h1>
+            <p>Team: <strong>Ivy league douche</strong> (Slot #3) | Pick #169 (Round 15)</p>
+        </div>
+        <div class="header-meta">
+            <select id="theme-select" class="theme-selector" onchange="setTheme(this.value)">
+                <option value="theme-cyberpunk">Cyberpunk Dark (Default)</option>
+                <option value="theme-professional">Professional Light</option>
+                <option value="theme-y2k">Windows 95/Y2K</option>
+            </select>
+            <span class="badge badge-idle">⏳ WAITING FOR TURN</span>
+            <span style="font-size: 12px; color: var(--text-muted);">Sync: 09:13:17 PM</span>
+        </div>
+    </div>
+    
+    <script>
+        // Ensure dropdown matches saved theme on load
+        document.getElementById('theme-select').value = savedTheme;
+    </script>
+
+    <div class="hero-banner">
+        <div class="target-card primary" onclick="navigator.clipboard.writeText('Auditing live board...'.split('(')[0].trim());">
+            <span class="target-label">🎯 Primary Target (Click to Copy)</span>
+            <div class="target-name">Auditing live board...</div>
+        </div>
+        <div class="target-card backup" onclick="navigator.clipboard.writeText('Auditing live board...'.split('(')[0].trim());">
+            <span class="target-label">🔄 Backup Pivot (Click to Copy)</span>
+            <div class="target-name">Auditing live board...</div>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <div>
+            <div class="card">
+                <div class="card-header">
+                    <span>🧠 Tactical Intelligence Engine</span>
+                    <span style="color: var(--accent-blue); font-weight: normal;">initializing</span>
+                </div>
+                <div class="card-body">
+                    <div class="intel-box">
+                        <div class="intel-item news">
+                            <div class="intel-title">🌐 Live Google Search Grounding & Injury Wire</div>
+                            <div class="intel-body">Checking live Google Search wire...</div>
+                            <div class="search-tags"><span style="color:#64748b; font-size:12px;">Using verified NFL news feed</span></div>
+                        </div>
+                        <div class="intel-item cliff">
+                            <div class="intel-title">⚠️ Positional Tier Cliff Warning</div>
+                            <div class="intel-body">Auditing tier cliff dynamics...</div>
+                        </div>
+                        <div class="intel-item threat">
+                            <div class="intel-title">🛡️ Opponent Gap Threat (2 Picks until Turn)</div>
+                            <div class="intel-body">Assessing opponent rosters in gap...</div>
+                            <div class="radar-stats">
+                                <div class="radar-stat-box">
+                                    <div class="radar-stat-val">0</div>
+                                    <div class="radar-stat-lbl">QBs Needed</div>
+                                </div>
+                                <div class="radar-stat-box">
+                                    <div class="radar-stat-val">0</div>
+                                    <div class="radar-stat-lbl">TEs Needed</div>
+                                </div>
+                                <div class="radar-stat-box">
+                                    <div class="radar-stat-val">0</div>
+                                    <div class="radar-stat-lbl">D/STs Needed</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="intel-item rationale">
+                            <div class="intel-title">💡 Game-Theory Rationale</div>
+                            <div class="intel-body">Synthesizing game-theory strategy...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span>📋 Top Available Board Slices</span>
+                </div>
+                <div class="card-body">
+                    <div class="board-list">
+                        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-d/st">D/ST</span>
+                <span class="player-name">Jaguars D/ST <small style="color: #64748b; font-size: 10px;">JAX</small></span>
+            </div>
+            <span class="proj-pts">87.5 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-qb">QB</span>
+                <span class="player-name">Jordan Love <small style="color: #64748b; font-size: 10px;">GB</small></span>
+            </div>
+            <span class="proj-pts">262.5 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-te">TE</span>
+                <span class="player-name">Kenyon Sadiq <small style="color: #64748b; font-size: 10px;">NYJ</small><span style="font-size: 9px; color: #ef4444; font-weight: bold; margin-left: 6px;">[QUESTIONABLE]</span></span>
+            </div>
+            <span class="proj-pts">115.9 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-k">K</span>
+                <span class="player-name">Chris Boswell <small style="color: #64748b; font-size: 10px;">PIT</small></span>
+            </div>
+            <span class="proj-pts">142.1 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-d/st">D/ST</span>
+                <span class="player-name">Chiefs D/ST <small style="color: #64748b; font-size: 10px;">KC</small></span>
+            </div>
+            <span class="proj-pts">110.7 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-qb">QB</span>
+                <span class="player-name">Sam Darnold <small style="color: #64748b; font-size: 10px;">SEA</small></span>
+            </div>
+            <span class="proj-pts">242.4 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-wr">WR</span>
+                <span class="player-name">Tre Tucker <small style="color: #64748b; font-size: 10px;">LV</small></span>
+            </div>
+            <span class="proj-pts">113.8 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-te">TE</span>
+                <span class="player-name">Terrance Ferguson <small style="color: #64748b; font-size: 10px;">LAR</small></span>
+            </div>
+            <span class="proj-pts">112.7 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-qb">QB</span>
+                <span class="player-name">C.J. Stroud <small style="color: #64748b; font-size: 10px;">HOU</small></span>
+            </div>
+            <span class="proj-pts">245.9 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-te">TE</span>
+                <span class="player-name">Brenton Strange <small style="color: #64748b; font-size: 10px;">JAX</small></span>
+            </div>
+            <span class="proj-pts">113.0 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-rb">RB</span>
+                <span class="player-name">Keaton Mitchell <small style="color: #64748b; font-size: 10px;">LAC</small><span style="font-size: 9px; color: #ef4444; font-weight: bold; margin-left: 6px;">[QUESTIONABLE]</span></span>
+            </div>
+            <span class="proj-pts">83.9 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-qb">QB</span>
+                <span class="player-name">Malik Willis <small style="color: #64748b; font-size: 10px;">MIA</small></span>
+            </div>
+            <span class="proj-pts">239.3 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-k">K</span>
+                <span class="player-name">Evan McPherson <small style="color: #64748b; font-size: 10px;">CIN</small></span>
+            </div>
+            <span class="proj-pts">140.6 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-rb">RB</span>
+                <span class="player-name">Justice Hill <small style="color: #64748b; font-size: 10px;">BAL</small></span>
+            </div>
+            <span class="proj-pts">100.4 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-te">TE</span>
+                <span class="player-name">Dalton Schultz <small style="color: #64748b; font-size: 10px;">HOU</small></span>
+            </div>
+            <span class="proj-pts">103.1 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-wr">WR</span>
+                <span class="player-name">Ja'Kobi Lane <small style="color: #64748b; font-size: 10px;">BAL</small></span>
+            </div>
+            <span class="proj-pts">92.5 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-d/st">D/ST</span>
+                <span class="player-name">Packers D/ST <small style="color: #64748b; font-size: 10px;">GB</small></span>
+            </div>
+            <span class="proj-pts">100.7 <small>PTS</small></span>
+        </div>
+        
+        <div class="board-item">
+            <div class="board-item-left">
+                <span class="pos-tag pos-wr">WR</span>
+                <span class="player-name">Adonai Mitchell <small style="color: #64748b; font-size: 10px;">NYJ</small></span>
+            </div>
+            <span class="proj-pts">106.8 <small>PTS</small></span>
+        </div>
+        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <div class="card-header">
+                    <span>🛡️ My Roster (0 Picks)</span>
+                </div>
+                <div class="card-body">
+                    <div class="roster-grid">
+                        <div class="empty-state">No players drafted yet.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
